@@ -1,5 +1,5 @@
-
 const { CosmosClient } = require('@azure/cosmos');
+//const { DefaultAzureCredential } = require('@azure/identity');
 
 module.exports = async function (context, req) {
     context.log('Public API with Cosmos DB');
@@ -7,7 +7,9 @@ module.exports = async function (context, req) {
     const category = req.query.category;
     const id = req.query.id;
     
-    const connectionString = process.env.CosmosDbConnectionString;
+    //const connectionString = process.env.CosmosDbConnectionString;
+    const connectionString = process.env.ROConnectionString;
+    //const endpoint = process.env.CosmosDbEndpoint;
     const databaseId = process.env.CosmosDbDatabase;
     const containerId = process.env.CosmosDbContainer;
     
@@ -50,6 +52,11 @@ module.exports = async function (context, req) {
     try {
         context.log('Connecting to Cosmos DB...');
         const client = new CosmosClient(connectionString);
+        //const credential = new DefaultAzureCredential();
+       // const client = new CosmosClient({ 
+           // endpoint: endpoint, 
+          //  aadCredentials: credential 
+       // });
         const database = client.database(databaseId);
         const container = database.container(containerId);
         
