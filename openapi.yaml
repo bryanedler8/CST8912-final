@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Public Data API
+  version: 1.0.0
+  description: >
+    Azure Function HTTP API that returns public data from Cosmos DB when configured,
+    otherwise returns built-in sample data.
+servers:
+  - url: https://apimgmt4gp2-dev.azure-api.net
+    description: Azure API Management Server
+
+paths:
+  /public/data:
+    get:
+      operationId: getPublicData
+      summary: Get public data
+      description: Retrieve all data, or filter by category and id.
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter results by category.
+          example: announcements
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter results by item id.
+          example: "1"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              examples:
+                allData:
+                  summary: All items
+                  value:
+                    status: success
+                    source: cosmos-db
+                    timestamp: "2026-04-02T10:00:00.000Z"
+                    category: all
+                    count: 2
+                    data:
+                      - id: "1"
+                        category: announcements
+                        title: Welcome
+                        content: Add Cosmos DB connection string in Configuration
+                      - id: "2"
+                        category: resources
+                        title: Documentation
+                        content: Check the docs for examples
+                filteredData:
+                  summary: Filtered by category and id
+                  value:
+                    status: success
+                    source: sample-data
+                    timestamp: "2026-04-02T10:00:00.000Z"
+                    category: announcements
+                    count: 1
+                    data:
+                      - id: "1"
+                        category: announcements
+                        title: Welcome
+                        content: Add Cosmos DB connection string in Configuration
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Failed to query Cosmos DB
+                timestamp: "2026-04-02T10:00:00.000Z"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RateLimitResponse"
+              example:
+                statusCode: 429
+                message: Rate limit is exceeded. Try again in 55 seconds.
+
+components:
+  schemas:
+    DataItem:
+      type: object
+      required:
+        - id
+        - category
+      properties:
+        id:
+          type: string
+          example: "1"
+        category:
+          type: string
+          example: announcements
+        title:
+          type: string
+          example: Welcome
+        content:
+          type: string
+          example: Add Cosmos DB connection string in Configuration
+
+    SuccessResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - category
+        - count
+        - data
+      properties:
+        status:
+          type: string
+          enum: [success]
+        source:
+          type: string
+          enum: [sample-data, cosmos-db]
+          description: Data source used for this response.
+        timestamp:
+          type: string
+          format: date-time
+        category:
+          type: string
+          description: Requested category, or all when no category is supplied.
+          example: all
+        count:
+          type: integer
+          minimum: 0
+          example: 1
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataItem"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    RateLimitResponse:
+      type: object
+      required:
+        - statusCode
+        - message
+      properties:
+        statusCode:
+          type: integer
+          enum: [429]
+          example: 429
+        message:
+          type: string
+          example: Rate limit is exceeded. Try again in 55 seconds.
