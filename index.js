@@ -14,35 +14,28 @@ module.exports = async function (context, req) {
     context.log(`Database: ${databaseId}, Container: ${containerId}`);
     context.log(`Query - Category: ${category || 'none'}, ID: ${id || 'none'}`);
     
-    // If no Cosmos DB configured, use sample data
+    // Helper function to clean Cosmos DB items (remove system metadata)
+    function cleanItem(item) {
+        return {
+            id: item.id,
+            category: item.category,
+            title: item.title,
+            content: item.content,
+            publishedDate: item.publishedDate,
+            department: item.department,
+            status: item.status
+        };
+    }
+    
+    // Check if Cosmos DB is configured
     if (!connectionString) {
-        context.log('Using sample data');
-        const sampleData = [
-            { id: "1", category: "announcements", title: "Welcome", content: "Add Cosmos DB connection string in Configuration" },
-            { id: "2", category: "announcements", title: "System Ready", content: "API is working with sample data" },
-            { id: "3", category: "news", title: "Breaking News", content: "Important news update" },
-            { id: "4", category: "events", title: "Community Meetup", content: "Join us next week" },
-            { id: "5", category: "notice", title: "Maintenance Notice", content: "Scheduled maintenance" }
-        ];
-        
-        let result = sampleData;
-        if (category) {
-            result = sampleData.filter(item => item.category === category);
-        }
-        if (id) {
-            result = result.filter(item => item.id === id);
-        }
-        
+        context.log.error('Cosmos DB connection string not configured');
         context.res = {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
+            status: 500,
             body: {
-                status: "success",
-                source: "sample-data",
-                timestamp: new Date().toISOString(),
-                category: category || "all",
-                count: result.length,
-                data: result
+                status: "error",
+                message: "Cosmos DB connection string not configured. Please add ROConnectionString to Application Settings.",
+                timestamp: new Date().toISOString()
             }
         };
         return;
@@ -60,7 +53,7 @@ module.exports = async function (context, req) {
         if (id && category) {
             context.log(`Fetching item: ${category}/${id}`);
             const { resource } = await container.item(id, category).read();
-            items = resource ? [resource] : [];
+            items = resource ? [cleanItem(resource)] : [];
         }
         // CASE 2: Only ID provided - Search across all categories (Cross-partition query)
         else if (id && !category) {
@@ -70,23 +63,19 @@ module.exports = async function (context, req) {
                 parameters: [{ name: "@id", value: id }]
             };
             const { resources } = await container.items.query(querySpec, {
-                enableCrossPartitionQuery: true  // Required to search without partition key
+                enableCrossPartitionQuery: true
             }).fetchAll();
-            items = resources;
+            items = resources.map(cleanItem);
             
             if (items.length === 0) {
                 context.log(`Item with ID ${id} not found`);
-            } else {
-                context.log(`Found item with ID ${id} in category: ${items[0].category}`);
             }
         }
         // CASE 3: Only Category provided - Filter by category
         else if (category) {
             context.log(`Fetching category: ${category}`);
-            // Validate category is one of the allowed values
-            const allowedCategories = ['announcements', 'news', 'events', 'notice'];
+            const allowedCategories = ['announcements', 'news', 'events', 'notices'];
             if (!allowedCategories.includes(category)) {
-                context.log.warn(`Invalid category: ${category}. Allowed: ${allowedCategories.join(', ')}`);
                 context.res = {
                     status: 400,
                     body: {
@@ -104,7 +93,7 @@ module.exports = async function (context, req) {
                     parameters: [{ name: "@category", value: category }]
                 })
                 .fetchAll();
-            items = resources;
+            items = resources.map(cleanItem);
         }
         // CASE 4: No parameters - Get all items
         else {
@@ -112,7 +101,7 @@ module.exports = async function (context, req) {
             const { resources } = await container.items
                 .query("SELECT * FROM c")
                 .fetchAll();
-            items = resources;
+            items = resources.map(cleanItem);
         }
         
         context.log(`Retrieved ${items.length} items from Cosmos DB`);
@@ -139,7 +128,7 @@ module.exports = async function (context, req) {
             status: 500,
             body: {
                 status: "error",
-                message: error.message,
+                message: `Database error: ${error.message}`,
                 timestamp: new Date().toISOString()
             }
         };
