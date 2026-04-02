@@ -90,7 +90,7 @@ npm warn EBADENGINE Unsupported engine {
 | Solution | Status | Outcome |
 |----------|--------|---------|
 | **Upgrade Function App to Node.js 20** | Available | Set `WEBSITE_NODE_DEFAULT_VERSION=~20` in Configuration |
-| **Use older Cosmos DB SDK (v3.17.3)** | Implemented ✅ | Works with Node.js 18 |
+| **Use older Cosmos DB SDK (v3.17.3)** | Implemented  | Works with Node.js 18 |
 | **Use sample data (no Cosmos DB)** | Working fallback | API functions without database |
 
 #### 4.5 Final Implementation Decision
