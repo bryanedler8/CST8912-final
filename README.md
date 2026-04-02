@@ -110,15 +110,6 @@ This version:
 -  Supports all required Cosmos DB operations
 -  Has no dependency on Node.js 20 features
 
-#### 4.6 Alternative: Upgrading to Node.js 20
-
-If future requirements demand the latest SDK version, the Function App can be upgraded:
-
-1. Go to **Configuration** → **General settings**
-2. Add/Update: `WEBSITE_NODE_DEFAULT_VERSION = ~20`
-3. Restart the Function App
-4. Update package.json: `"@azure/cosmos": "4.9.2"`
-
 ---
 
 ### 5. Cosmos DB Connection Implementation
